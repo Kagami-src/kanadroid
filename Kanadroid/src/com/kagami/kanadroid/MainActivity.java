@@ -1,6 +1,5 @@
 package com.kagami.kanadroid;
 
-
 import com.kagami.kanadroid.format.KanaListAdapter;
 
 import android.app.SearchManager;
@@ -10,6 +9,7 @@ import android.os.Bundle;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,10 +21,18 @@ public class MainActivity extends FragmentActivity {
 	private DrawerLayout mDrawerLayout;
 	private ListView mDrawerList;
 	private ActionBarDrawerToggle mDrawerToggle;
+	private boolean isFullScreen = false;
+	private int mThemeid;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		if (savedInstanceState != null) {
+			if (savedInstanceState.getInt("theme", -1) != -1) {
+				mThemeid = savedInstanceState.getInt("theme");
+				this.setTheme(mThemeid);
+			}
+		}
 		setContentView(R.layout.activity_view);
 		mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
 		getActionBar().setDisplayHomeAsUpEnabled(true);
@@ -48,18 +56,22 @@ public class MainActivity extends FragmentActivity {
 			}
 		};
 		mDrawerLayout.setDrawerListener(mDrawerToggle);
-		
-		//List
+
+		// List
 		mDrawerList = (ListView) findViewById(R.id.left_drawer);
-		KanaApplication app=(KanaApplication)getApplication();
-		KanaListAdapter adapter=new KanaListAdapter(app.getData());
+		KanaApplication app = (KanaApplication) getApplication();
+		KanaListAdapter adapter = new KanaListAdapter(app.getData());
 		mDrawerList.setAdapter(adapter);
+
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
+		MenuItem item = menu.findItem(R.id.action_fullscreen);
+		if (isFullScreen)
+			item.setIcon(R.drawable.ic_action_return_from_full_screen);
 		return true;
 	}
 
@@ -84,9 +96,47 @@ public class MainActivity extends FragmentActivity {
 		if (mDrawerToggle.onOptionsItemSelected(item)) {
 			return true;
 		}
+		int id = item.getItemId();
+		int fullop = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+				| View.SYSTEM_UI_FLAG_FULLSCREEN
+				| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+		switch (id) {
+		case R.id.action_fullscreen:
+			if (!isFullScreen) {
+				int uiop = getWindow().getDecorView().getSystemUiVisibility();
+				int newuiop = uiop | fullop;
+				getWindow().getDecorView().setSystemUiVisibility(newuiop);
+				item.setIcon(R.drawable.ic_action_return_from_full_screen);
+			} else {
+				int uiop = getWindow().getDecorView().getSystemUiVisibility();
+				int newuiop = ~fullop & uiop;
+				getWindow().getDecorView().setSystemUiVisibility(newuiop);
+				item.setIcon(R.drawable.ic_action_full_screen);
+			}
+
+			Log.d("kagami", "full");
+			isFullScreen = !isFullScreen;
+			break;
+		case R.id.action_theme:
+			if (mThemeid == R.style.AppTheme_Dark)
+				mThemeid = R.style.AppTheme_Light;
+			else
+				mThemeid = R.style.AppTheme_Dark;
+			recreate();
+			break;
+
+		default:
+			break;
+		}
 
 		return super.onOptionsItemSelected(item);
 
+	}
+
+	@Override
+	public void onSaveInstanceState(Bundle outState) {
+		super.onSaveInstanceState(outState);
+		outState.putInt("theme", mThemeid);
 	}
 
 }
